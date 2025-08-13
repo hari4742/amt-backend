@@ -60,11 +60,10 @@ def validate_audio_file(file: UploadFile) -> Tuple[bool, Optional[str]]:
     if file.content_type:
         audio_mime_types = [
             'audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/flac',
-            'audio/mp4', 'audio/ogg', 'audio/x-wav', 'audio/x-m4a'
+            'audio/mp4', 'audio/ogg', 'audio/x-wav', 'audio/x-m4a', 'audio/wave'
         ]
         if file.content_type not in audio_mime_types:
             return False, f"Invalid MIME type: {file.content_type}"
-
     return True, None
 
 
