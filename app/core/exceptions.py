@@ -158,3 +158,23 @@ class ServiceUnavailableError(HTTPException):
 
     def __init__(self, detail: str = "Service unavailable"):
         super().__init__(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+
+
+class ComparisonError(AMTException):
+    """Raised when MIDI comparison fails."""
+    pass
+
+
+class ExportError(AMTException):
+    """Raised when export operation fails."""
+    pass
+
+
+class BatchProcessingError(AMTException):
+    """Raised when batch processing fails."""
+    pass
+
+
+class NoteAnalysisError(AMTException):
+    """Raised when note analysis fails."""
+    pass

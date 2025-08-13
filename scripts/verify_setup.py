@@ -70,6 +70,9 @@ def main():
         ("app/services/progress_service.py", "Progress service"),
         ("app/services/monitoring_service.py", "Monitoring service"),
         ("app/services/worker_tasks.py", "Worker tasks"),
+        ("app/services/comparison_service.py", "Comparison service"),
+        ("app/services/export_service.py", "Export service"),
+        ("app/services/batch_service.py", "Batch service"),
         ("app/utils/__init__.py", "Utils package"),
         ("app/utils/file_utils.py", "File utilities"),
         ("app/core/middleware.py", "Middleware"),
@@ -80,6 +83,7 @@ def main():
         ("tests/test_phase2.py", "Phase 2 tests"),
         ("tests/test_phase3.py", "Phase 3 tests"),
         ("tests/test_phase4.py", "Phase 4 tests"),
+        ("tests/test_phase5.py", "Phase 5 tests"),
     ]
 
     structure_ok = True
@@ -137,6 +141,9 @@ def main():
         ("app.services.progress_service", "Progress service"),
         ("app.services.monitoring_service", "Monitoring service"),
         ("app.services.worker_tasks", "Worker tasks"),
+        ("app.services.comparison_service", "Comparison service"),
+        ("app.services.export_service", "Export service"),
+        ("app.services.batch_service", "Batch service"),
         ("app.utils.file_utils", "File utilities"),
         ("app.api.v1.endpoints.health", "Health endpoints"),
         ("app.api.v1.endpoints.utils", "Utility endpoints"),
