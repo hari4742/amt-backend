@@ -60,6 +60,8 @@ def main():
         ("app/api/v1/api.py", "API router"),
         ("app/api/v1/endpoints/__init__.py", "Endpoints package"),
         ("app/api/v1/endpoints/transcription.py", "Transcription endpoints"),
+        ("app/api/v1/endpoints/health.py", "Health endpoints"),
+        ("app/api/v1/endpoints/utils.py", "Utility endpoints"),
         ("app/services/__init__.py", "Services package"),
         ("app/services/transcription_tasks.py", "Transcription tasks"),
         ("app/services/file_service.py", "File service"),
@@ -67,10 +69,13 @@ def main():
         ("app/services/midi_service.py", "MIDI service"),
         ("app/utils/__init__.py", "Utils package"),
         ("app/utils/file_utils.py", "File utilities"),
+        ("app/core/middleware.py", "Middleware"),
+        ("app/core/exceptions.py", "Custom exceptions"),
         ("tests/__init__.py", "Tests package"),
         ("tests/conftest.py", "Pytest configuration"),
         ("tests/test_api.py", "API tests"),
         ("tests/test_phase2.py", "Phase 2 tests"),
+        ("tests/test_phase3.py", "Phase 3 tests"),
     ]
 
     structure_ok = True
@@ -126,6 +131,8 @@ def main():
         ("app.services.audio_service", "Audio service"),
         ("app.services.midi_service", "MIDI service"),
         ("app.utils.file_utils", "File utilities"),
+        ("app.api.v1.endpoints.health", "Health endpoints"),
+        ("app.api.v1.endpoints.utils", "Utility endpoints"),
     ]
 
     app_ok = True

@@ -9,6 +9,12 @@ from app.config import settings
 from app.api.v1.api import api_router
 from app.core.database import engine
 from app.models import transcription
+from app.core.middleware import (
+    RateLimitMiddleware,
+    LoggingMiddleware,
+    ErrorHandlingMiddleware,
+    SecurityHeadersMiddleware
+)
 
 # Create database tables
 transcription.Base.metadata.create_all(bind=engine)
@@ -38,6 +44,12 @@ app.add_middleware(
     allowed_hosts=["*"]  # Configure appropriately for production
 )
 
+# Add custom middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(ErrorHandlingMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+
 # Include API routes
 app.include_router(api_router)
 
@@ -49,15 +61,6 @@ async def root():
         "message": "Welcome to AMT Backend",
         "version": settings.app_version,
         "docs": "/docs"
-    }
-
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "timestamp": "2024-01-01T12:00:00Z"
     }
 
 
