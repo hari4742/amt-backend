@@ -1,0 +1,154 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Automatic Music Transcription UI - Requirements Document
+
+## 1. Overview
+
+Build a React-based web UI for an automatic music transcription system. The UI allows users to upload an audio file, sends it to a backend for transcription, and displays the generated MIDI file visually. Optionally, users can compare this generated transcription with an original MIDI file in a synchronized, side-by-side piano-roll view.
+
+---
+
+## 2. Functional Requirements
+
+### 2.1 Upload & Transcription Flow
+
+* User uploads an **audio file** (`.wav`, `.mp3`, etc.).
+* A **"Generate Transcript"** button triggers sending the file to a backend endpoint.
+* The backend returns a **generated MIDI file**.
+* The UI displays a **piano-roll visualization** of the generated MIDI.
+
+### 2.2 Compare Flow
+
+* After the generated MIDI is displayed, an option **"Compare with Original MIDI"** is shown.
+* Upon clicking, the user uploads the **original MIDI file**.
+* The UI transitions into a **split-screen compare view**:
+
+  * Left: Generated MIDI piano-roll
+  * Right: Original MIDI piano-roll
+  * Both panes are **horizontally scrollable** and **synchronized in time**.
+  * Playback controls (play, pause, seek) affect both views.
+  * A **shared playhead/cursor** moves in sync across both.
+
+### 2.3 Playback Controls
+
+* Controls:
+
+  * Play
+  * Pause
+  * Seek (via scrubber/timeline)
+* Playhead should update both piano-rolls and waveform views in real time.
+
+### 2.4 Visual Synchronization
+
+* Horizontal scrolling in either view should scroll both panes.
+* Playhead remains centered or auto-scrolls to keep it in view.
+* Optional zoom controls for precision.
+
+### 2.5 Transcript Text Comparison (Optional Extension)
+
+* Allow user to upload a **reference transcription file (text)**.
+* Show side-by-side or diff-style view with generated transcript.
+
+---
+
+## 3. User Flows
+
+### A. Transcription Flow
+
+1. User lands on main page.
+2. Uploads an audio file.
+3. Clicks **"Generate Transcript"**.
+4. UI shows loading indicator.
+5. Backend returns MIDI file.
+6. UI renders the generated MIDI piano-roll with playback controls.
+7. UI shows a **"Compare with Original MIDI"** button.
+
+### B. Comparison Flow
+
+1. User clicks **"Compare with Original MIDI"**.
+2. Uploads original MIDI file.
+3. UI displays split-screen piano-rolls.
+4. User presses **Play**.
+5. Both piano-rolls play in sync with shared playhead and timeline.
+
+### C. Transcript Text Comparison (Optional)
+
+1. User uploads a reference text file.
+2. UI shows side-by-side transcript view.
+3. Mismatches (e.g., timing or notes) are highlighted.
+
+---
+
+## 4. Technical Stack
+
+### Frontend
+
+* **React** (functional components + hooks)
+* **Wavesurfer.js** – for waveform audio playback & visualization
+* **Tone.js** or **Web Audio API** – for MIDI playback scheduling
+* **@tonejs/midi** or **Magenta.js** – for MIDI parsing and conversion to note events
+* **webaudio-pianoroll** / **react-midi-sequencer** / **custom SVG/Canvas** – for piano-roll rendering
+* **react-diff-viewer** – for transcript diff comparison (optional)
+
+### Backend
+
+* Endpoint for receiving audio and returning MIDI
+* MIDI generation logic (model using Maestro dataset)
+
+---
+
+## 5. UI Components
+
+### <AudioUploader />
+
+* File input for audio
+* Trigger "Generate Transcript"
+
+### <TranscriptPlayer />
+
+* Piano-roll renderer of generated MIDI
+* Audio waveform view (optional)
+* Playback controls
+
+### <CompareButton />
+
+* Shown after transcript is generated
+* Triggers upload of original MIDI
+
+### <CompareView />
+
+* Dual-pane piano-roll UI
+* Synced scroll, zoom, and playback
+* Playhead tracking
+
+### <TranscriptCompare /> (Optional)
+
+* Side-by-side or diff view of generated vs. original text
+
+---
+
+## 6. Synchronization Requirements
+
+* Single source of truth for current playback time (`currentTime`)
+* Both MIDI views and audio player subscribe to time updates
+* Shared scroll position & zoom level
+* Efficient rendering (Canvas/WebGL if performance demands)
+
+---
+
+## 7. Future Enhancements
+
+* Export MIDI functionality
+* Quantization/timing correction
+* Note editing or feedback submission UI
+* Mobile optimization
+
+---
+
+## 8. Summary
+
+This UI provides a structured and intuitive interface for uploading audio, generating music transcripts using a backend model, visualizing the results, and comparing with original references. Piano-roll visualizations are synchronized and interactive, providing valuable insight into the quality and structure of the automatic transcription.
+
