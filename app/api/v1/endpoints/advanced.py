@@ -23,7 +23,6 @@ from app.schemas.advanced import (
 )
 from app.core.exceptions import (
     TranscriptionNotFoundError,
-    FileNotFoundError,
     ComparisonError,
     ExportError,
     BatchProcessingError
