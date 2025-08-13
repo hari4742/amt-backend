@@ -2,6 +2,7 @@
 Celery configuration for async task processing.
 """
 
+import platform
 from celery import Celery
 from app.config import settings
 
@@ -16,6 +17,16 @@ celery_app = Celery(
     ]
 )
 
+# Windows-specific configuration
+if platform.system() == "Windows":
+    # Use threads pool on Windows to avoid permission issues
+    celery_app.conf.update(
+        broker_connection_retry_on_startup=True,
+        worker_pool_restarts=True,
+        worker_pool="threads",
+        worker_concurrency=4,
+    )
+
 # Celery configuration
 celery_app.conf.update(
     task_serializer="json",
@@ -25,7 +36,7 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_time_limit=30 * 60,  # 30 minutes
-    task_soft_time_limit=25 * 60,  # 25 minutes
+    # Remove soft time limit on Windows to avoid SIGUSR1 issues
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=1000,
     task_acks_late=True,  # Acknowledge task after completion
@@ -51,6 +62,10 @@ celery_app.conf.update(
         }
     }
 )
+
+# Add soft time limit only on non-Windows platforms
+if platform.system() != "Windows":
+    celery_app.conf.task_soft_time_limit = 25 * 60  # 25 minutes
 
 # Task routing with priority queues
 celery_app.conf.task_routes = {

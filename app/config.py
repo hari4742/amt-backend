@@ -2,6 +2,7 @@
 Configuration settings for the AMT Backend application.
 """
 
+import os
 from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "AMT Backend"
     app_version: str = "0.1.0"
-    debug: bool = Field(default=False, env="DEBUG")
+    debug: bool = Field(default=True, env="DEBUG")  # Default to True for development
 
     # Server
     host: str = Field(default="0.0.0.0", env="HOST")
@@ -46,7 +47,10 @@ class Settings(BaseSettings):
         default=600, env="MAX_AUDIO_DURATION")  # 10 minutes
 
     # Security
-    secret_key: str = Field(env="SECRET_KEY")
+    secret_key: str = Field(
+        default="your-super-secret-key-change-this-in-production",
+        env="SECRET_KEY"
+    )
     access_token_expire_minutes: int = Field(
         default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
 
@@ -61,7 +65,10 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = False
+        # Don't fail if .env file doesn't exist
+        env_ignore_empty = True
 
 
 # Global settings instance
