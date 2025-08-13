@@ -9,6 +9,9 @@ from celery import current_task
 from app.core.celery_app import celery_app
 from app.core.database import SessionLocal
 from app.models.transcription import Transcription, TranscriptionStatus
+from app.services.file_service import FileService
+from app.services.audio_service import AudioService
+from app.services.midi_service import MIDIService
 
 
 @celery_app.task(bind=True)
@@ -20,6 +23,7 @@ def process_transcription(self, transcription_id: str):
         transcription_id: Unique identifier for the transcription
     """
     db = SessionLocal()
+    start_time = datetime.utcnow()
 
     try:
         # Update status to processing
@@ -32,24 +36,48 @@ def process_transcription(self, transcription_id: str):
         transcription.updated_at = datetime.utcnow()
         db.commit()
 
-        # TODO: Implement actual transcription logic
-        # 1. Load audio file
-        # 2. Preprocess audio
-        # 3. Run transcription model
-        # 4. Generate MIDI file
-        # 5. Calculate quality metrics
+        # 1. Load and validate audio file
+        if not os.path.exists(transcription.audio_path):
+            raise ValueError(f"Audio file not found: {transcription.audio_path}")
 
-        # Simulate processing time
-        import time
-        time.sleep(5)  # Simulate processing
+        audio_data, sample_rate = AudioService.load_audio(transcription.audio_path)
 
-        # Update with results
+        # 2. Analyze and validate audio quality
+        audio_analysis = AudioService.analyze_audio(audio_data, sample_rate)
+        is_valid, error_message = AudioService.validate_audio_quality(
+            audio_data, sample_rate)
+
+        if not is_valid:
+            raise ValueError(f"Audio quality validation failed: {error_message}")
+
+        # Update transcription with audio analysis
+        transcription.duration = audio_analysis['duration']
+        db.commit()
+
+        # 3. Preprocess audio
+        processed_audio = AudioService.preprocess_audio(audio_data, sample_rate)
+
+        # 4. Generate MIDI from audio
+        midi_results = MIDIService.generate_midi_from_audio(
+            processed_audio,
+            sample_rate,
+            transcription.midi_path,
+            quality=transcription.quality
+        )
+
+        # 5. Validate generated MIDI
+        is_midi_valid, midi_error = MIDIService.validate_midi_file(
+            transcription.midi_path)
+        if not is_midi_valid:
+            raise ValueError(f"MIDI validation failed: {midi_error}")
+
+        # 6. Calculate processing time and update results
+        processing_time = (datetime.utcnow() - start_time).total_seconds()
+
         transcription.status = TranscriptionStatus.COMPLETED
         transcription.completed_at = datetime.utcnow()
-        transcription.processing_time = 5.0  # TODO: Calculate actual time
-        transcription.confidence_score = 0.85  # TODO: Calculate actual score
-        # TODO: Generate actual path
-        transcription.midi_path = f"/uploads/midi/{transcription_id}.mid"
+        transcription.processing_time = processing_time
+        transcription.confidence_score = midi_results['confidence_score']
         transcription.updated_at = datetime.utcnow()
 
         db.commit()
@@ -57,8 +85,10 @@ def process_transcription(self, transcription_id: str):
         return {
             "status": "completed",
             "transcription_id": transcription_id,
-            "processing_time": 5.0,
-            "confidence_score": 0.85
+            "processing_time": processing_time,
+            "confidence_score": midi_results['confidence_score'],
+            "total_notes": midi_results['total_notes'],
+            "tempo": midi_results['tempo']
         }
 
     except Exception as e:

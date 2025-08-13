@@ -3,7 +3,10 @@ Transcription API endpoints.
 """
 
 from typing import List
+import uuid
+import os
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.transcription import (
@@ -14,6 +17,8 @@ from app.schemas.transcription import (
     TranscriptionListResponse
 )
 from app.models.transcription import Transcription, TranscriptionStatus
+from app.services.file_service import FileService
+from app.services.transcription_tasks import process_transcription
 
 router = APIRouter()
 
@@ -35,18 +40,36 @@ async def upload_and_transcribe(
     Returns:
         Transcription creation response with ID
     """
-    # TODO: Implement file validation and upload
-    # TODO: Create transcription record
-    # TODO: Start async transcription task
+    # Generate unique transcription ID
+    transcription_id = str(uuid.uuid4())
 
-    # Placeholder implementation
-    transcription_id = "550e8400-e29b-41d4-a716-446655440000"
+    try:
+        # Save audio file and create transcription record
+        audio_path, file_size = await FileService.save_audio_file(
+            audio, transcription_id, db
+        )
 
-    return TranscriptionCreate(
-        transcription_id=transcription_id,
-        original_filename=audio.filename or "unknown",
-        file_size=0  # TODO: Get actual file size
-    )
+        # Update transcription with options
+        transcription = db.query(Transcription).filter(
+            Transcription.id == transcription_id).first()
+        if transcription:
+            transcription.model_type = options.model_type
+            transcription.quality = options.quality
+            db.commit()
+
+        # Start async transcription task
+        process_transcription.delay(transcription_id)
+
+        return TranscriptionCreate(
+            transcription_id=transcription_id,
+            original_filename=audio.filename or "unknown",
+            file_size=file_size
+        )
+
+    except Exception as e:
+        # Clean up on error
+        FileService.delete_transcription_files(transcription_id, db)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/transcribe/{transcription_id}/status", response_model=TranscriptionStatusResponse)
@@ -64,16 +87,29 @@ async def get_status(
     Returns:
         Current status and progress information
     """
-    # TODO: Implement status retrieval
-    # Placeholder implementation
+    transcription = db.query(Transcription).filter(
+        Transcription.id == transcription_id).first()
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    # Calculate progress based on status
+    progress = 0.0
+    if transcription.status == TranscriptionStatus.PENDING:
+        progress = 0.0
+    elif transcription.status == TranscriptionStatus.PROCESSING:
+        progress = 50.0  # Simplified progress calculation
+    elif transcription.status == TranscriptionStatus.COMPLETED:
+        progress = 100.0
+    elif transcription.status == TranscriptionStatus.FAILED:
+        progress = 0.0
+
     return TranscriptionStatusResponse(
         id=transcription_id,
-        status=TranscriptionStatus.PENDING,
-        progress=0.0,
-        estimated_completion=None,
-        error_message=None,
-        updated_at=db.query(Transcription).filter(
-            Transcription.id == transcription_id).first().updated_at
+        status=transcription.status,
+        progress=progress,
+        estimated_completion=None,  # TODO: Implement estimated completion calculation
+        error_message=transcription.error_message,
+        updated_at=transcription.updated_at
     )
 
 
@@ -149,13 +185,50 @@ async def delete_transcription(
     Returns:
         Success message
     """
-    # TODO: Implement deletion with file cleanup
     transcription = db.query(Transcription).filter(
         Transcription.id == transcription_id).first()
     if not transcription:
         raise HTTPException(status_code=404, detail="Transcription not found")
 
-    db.delete(transcription)
-    db.commit()
+    # Delete files and database record
+    success = FileService.delete_transcription_files(transcription_id, db)
 
-    return {"message": "Transcription deleted successfully"}
+    if success:
+        return {"message": "Transcription deleted successfully"}
+    else:
+        raise HTTPException(
+            status_code=500, detail="Failed to delete transcription files")
+
+
+@router.get("/transcribe/{transcription_id}/download")
+async def download_midi(
+    transcription_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Download the generated MIDI file.
+
+    Args:
+        transcription_id: Unique identifier for the transcription
+        db: Database session
+
+    Returns:
+        MIDI file download
+    """
+    transcription = db.query(Transcription).filter(
+        Transcription.id == transcription_id).first()
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    if transcription.status != TranscriptionStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Transcription is not completed")
+
+    if not transcription.midi_path or not os.path.exists(transcription.midi_path):
+        raise HTTPException(status_code=404, detail="MIDI file not found")
+
+    filename = f"{transcription_id}.mid"
+    return FileResponse(
+        path=transcription.midi_path,
+        filename=filename,
+        media_type="audio/midi"
+    )

@@ -62,9 +62,15 @@ def main():
         ("app/api/v1/endpoints/transcription.py", "Transcription endpoints"),
         ("app/services/__init__.py", "Services package"),
         ("app/services/transcription_tasks.py", "Transcription tasks"),
+        ("app/services/file_service.py", "File service"),
+        ("app/services/audio_service.py", "Audio service"),
+        ("app/services/midi_service.py", "MIDI service"),
+        ("app/utils/__init__.py", "Utils package"),
+        ("app/utils/file_utils.py", "File utilities"),
         ("tests/__init__.py", "Tests package"),
         ("tests/conftest.py", "Pytest configuration"),
         ("tests/test_api.py", "API tests"),
+        ("tests/test_phase2.py", "Phase 2 tests"),
     ]
 
     structure_ok = True
@@ -116,6 +122,10 @@ def main():
         ("app.schemas.transcription", "Transcription schemas"),
         ("app.api.v1.endpoints.transcription", "Transcription endpoints"),
         ("app.services.transcription_tasks", "Transcription tasks"),
+        ("app.services.file_service", "File service"),
+        ("app.services.audio_service", "Audio service"),
+        ("app.services.midi_service", "MIDI service"),
+        ("app.utils.file_utils", "File utilities"),
     ]
 
     app_ok = True
