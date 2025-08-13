@@ -12,9 +12,11 @@ from app.models.transcription import Transcription, TranscriptionStatus
 from app.services.file_service import FileService
 from app.services.audio_service import AudioService
 from app.services.midi_service import MIDIService
+from app.services.worker_tasks import audio_processing_worker, midi_generation_worker
+from app.services.progress_service import ProgressService, update_transcription_step
 
 
-@celery_app.task(bind=True)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
 def process_transcription(self, transcription_id: str):
     """
     Process audio transcription asynchronously.
@@ -99,31 +101,69 @@ def process_transcription(self, transcription_id: str):
             transcription.updated_at = datetime.utcnow()
             db.commit()
 
-        # Re-raise the exception
-        raise e
+        # Retry logic
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e, countdown=30 * (2 ** self.request.retries))
+        else:
+            raise e
 
     finally:
         db.close()
 
 
-@celery_app.task
-def cleanup_old_files():
+@celery_app.task(bind=True, max_retries=1, default_retry_delay=300)
+def cleanup_old_files(self, days_old: int = 7):
     """
     Clean up old transcription files.
+
+    Args:
+        days_old: Number of days to keep files
     """
-    # TODO: Implement file cleanup logic
-    # Remove files older than X days
-    pass
+    try:
+        deleted_count = FileService.cleanup_old_files(days_old)
+
+        return {
+            "status": "cleanup_completed",
+            "deleted_files": deleted_count,
+            "days_old": days_old,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        # Retry once after 5 minutes
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e, countdown=300)
+        else:
+            raise e
 
 
-@celery_app.task
-def validate_audio_file(file_path: str):
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=10)
+def validate_audio_file(self, file_path: str):
     """
     Validate audio file format and quality.
 
     Args:
         file_path: Path to the audio file
     """
-    # TODO: Implement audio validation
-    # Check file format, duration, quality, etc.
-    pass
+    try:
+        # Load and validate audio
+        audio_data, sample_rate = AudioService.load_audio(file_path)
+        audio_analysis = AudioService.analyze_audio(audio_data, sample_rate)
+        is_valid, error_message = AudioService.validate_audio_quality(
+            audio_data, sample_rate)
+
+        return {
+            "status": "validation_completed",
+            "file_path": file_path,
+            "is_valid": is_valid,
+            "error_message": error_message if not is_valid else None,
+            "analysis": audio_analysis,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        # Retry logic
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e, countdown=10 * (2 ** self.request.retries))
+        else:
+            raise e
