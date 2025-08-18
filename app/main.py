@@ -52,6 +52,7 @@ app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 
 # Include API routes
 app.include_router(api_router)
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/")

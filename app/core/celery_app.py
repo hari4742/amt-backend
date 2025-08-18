@@ -3,6 +3,7 @@ Celery configuration for async task processing.
 """
 
 import platform
+from kombu import Queue
 from celery import Celery
 from app.config import settings
 
@@ -36,19 +37,18 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_time_limit=30 * 60,  # 30 minutes
-    # Remove soft time limit on Windows to avoid SIGUSR1 issues
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=1000,
-    task_acks_late=True,  # Acknowledge task after completion
-    task_reject_on_worker_lost=True,  # Reject task if worker dies
-    task_always_eager=False,  # Run tasks asynchronously
-    worker_send_task_events=True,  # Send task events
-    task_send_sent_event=True,  # Send task sent events
-    task_ignore_result=False,  # Store task results
-    task_store_errors_even_if_ignored=True,  # Store errors
-    task_compression="gzip",  # Compress task data
-    result_compression="gzip",  # Compress results
-    result_expires=3600,  # Results expire in 1 hour
+    task_acks_late=True,
+    task_reject_on_worker_lost=True,
+    task_always_eager=False,
+    worker_send_task_events=True,
+    task_send_sent_event=True,
+    task_ignore_result=False,
+    task_store_errors_even_if_ignored=True,
+    task_compression="gzip",
+    result_compression="gzip",
+    result_expires=3600,
     result_backend_transport_options={
         "retry_policy": {
             "timeout": 5.0,
@@ -76,11 +76,11 @@ celery_app.conf.task_routes = {
     "app.services.transcription_tasks.*": {"queue": "transcription_default"},
 }
 
-# Task priority settings
-celery_app.conf.task_queue_max_priority = {
-    "transcription_high": 10,
-    "transcription_default": 5,
-    "midi_generation": 7,
-    "maintenance": 1,
-    "validation": 3,
-}
+# Define queues with max priority
+celery_app.conf.task_queues = (
+    Queue('transcription_high',    routing_key='transcription_high',    max_priority=10),
+    Queue('transcription_default', routing_key='transcription_default', max_priority=5),
+    Queue('midi_generation',       routing_key='midi_generation',       max_priority=7),
+    Queue('maintenance',           routing_key='maintenance',           max_priority=1),
+    Queue('validation',            routing_key='validation',            max_priority=3),
+)
