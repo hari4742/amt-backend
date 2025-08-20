@@ -40,7 +40,7 @@ USER app
 # Expose port
 EXPOSE 8000
 
-RUN chmod +x /start.sh
+RUN chmod +x ./start.sh
 
 # Health check
 # HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
@@ -49,4 +49,4 @@ RUN chmod +x /start.sh
 # Run the application
 # CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
 
-CMD ["/start.sh"]
+CMD ["./start.sh"]
