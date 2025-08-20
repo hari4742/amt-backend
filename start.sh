@@ -5,7 +5,7 @@ set -e
 uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 
 # Start Celery in background
-celery -A app.core.celery_app.celery_app worker --loglevel=info &
+celery -A app.core.celery_app.celery_app worker --loglevel=info --concurrency=1 --pool=solo&
 
 # Wait for any process to exit
 wait -n
